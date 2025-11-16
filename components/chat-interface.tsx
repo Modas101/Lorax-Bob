@@ -25,6 +25,7 @@ interface CrisisInfo {
 
 const STORAGE_KEY = 'ai-therapist-conversation';
 const SESSION_KEY = 'ai-therapist-session-id';
+const MOOD_STATE_KEY = 'ai-therapist-mood-state';
 
 interface ChatInterfaceProps {
   onNavigateToJournal?: () => void;
@@ -57,13 +58,15 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
   const [startMood, setStartMood] = useState<number | null>(null);
   const [endMood, setEndMood] = useState<number | null>(null);
   const [conversationStarted, setConversationStarted] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Load conversation from localStorage on mount
+  // Load conversation and mood state from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Load messages
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         try {
@@ -73,6 +76,21 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
           console.error('Failed to parse stored messages:', error);
         }
       }
+
+      // Load mood state
+      const moodState = localStorage.getItem(MOOD_STATE_KEY);
+      if (moodState) {
+        try {
+          const parsed = JSON.parse(moodState);
+          setStartMood(parsed.startMood || null);
+          setEndMood(parsed.endMood || null);
+          setConversationStarted(parsed.conversationStarted || false);
+        } catch (error) {
+          console.error('Failed to parse stored mood state:', error);
+        }
+      }
+
+      setInitialLoadComplete(true);
     }
   }, []);
 
@@ -83,6 +101,17 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
     }
   }, [messages]);
 
+  // Save mood state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && initialLoadComplete) {
+      localStorage.setItem(MOOD_STATE_KEY, JSON.stringify({
+        startMood,
+        endMood,
+        conversationStarted
+      }));
+    }
+  }, [startMood, endMood, conversationStarted, initialLoadComplete]);
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (scrollRef.current) {
@@ -90,9 +119,9 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
     }
   }, [messages]);
 
-  // Check for API key and show start mood rating on mount
+  // Check for API key and show start mood rating ONLY on initial load
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && initialLoadComplete) {
       const apiKey = localStorage.getItem('deepseek-api-key');
       setHasApiKey(!!apiKey);
       
@@ -100,11 +129,11 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
       if (!apiKey) {
         setShowApiDialog(true);
       } else if (messages.length === 0 && !conversationStarted && !startMood) {
-        // Show start mood rating if new conversation
+        // Show start mood rating ONLY if truly a new conversation
         setShowStartMoodRating(true);
       }
     }
-  }, [messages.length, conversationStarted, startMood]);
+  }, [initialLoadComplete]); // Only run once after initial load
 
   // Focus input on mount
   useEffect(() => {
@@ -240,6 +269,7 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
         // Clear localStorage
         if (typeof window !== 'undefined') {
           localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(MOOD_STATE_KEY);
         }
         
         // Show start mood rating for new conversation
@@ -383,6 +413,7 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem(MOOD_STATE_KEY);
       }
     } catch (error) {
       console.error('Error clearing chat:', error);
