@@ -10,7 +10,7 @@ const sessionMemories = new Map<string, MemoryManager>();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, sessionId, apiKey, apiUrl, model, tone } = body;
+    const { message, sessionId, apiKey, apiUrl, model, tone, isGreeting } = body;
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -47,6 +47,73 @@ export async function POST(request: NextRequest) {
       model: model || 'deepseek-v3'
     });
 
+    // Handle greeting request specially
+    if (isGreeting && message === '[GREETING_REQUEST]') {
+      // Get journal context for continuity
+      const journalContext = getRecentJournalContext();
+      
+      // Get user facts context
+      const userFactsContext = formatFactsForContext();
+      
+      // Combine all context
+      const fullContext = journalContext + userFactsContext;
+      
+      // Get current time info for personalized greeting
+      const hour = new Date().getHours();
+      const timeOfDay = 
+        hour >= 0 && hour < 4 ? 'late at night' :
+        hour >= 4 && hour < 8 ? 'early morning' :
+        hour >= 8 && hour < 12 ? 'morning' :
+        hour >= 12 && hour < 17 ? 'afternoon' :
+        hour >= 17 && hour < 21 ? 'evening' : 'night';
+      
+      // Create greeting prompt
+      const greetingMessages = [
+        {
+          role: 'system' as const,
+          content: `You are a compassionate, empathetic listener. The user is starting a new conversation with you. Generate a warm, personalized greeting based on the time of day and any relevant context you have about them.
+
+${fullContext}
+
+Current time: It's ${timeOfDay} (${hour}:00).
+
+Instructions:
+- Keep it conversational and natural (1-2 sentences max)
+- If it's very late/early, acknowledge that thoughtfully
+- If you know about recent events or moods from the context, you can naturally reference them
+- Ask an open-ended question to start the conversation
+- Be warm and welcoming
+
+Example tones:
+- Late night: "What has you up so late tonight?"
+- With context: "Hey! How did [recent event] go?"
+- General: "How are you feeling this ${timeOfDay}?"
+
+Generate only the greeting message, nothing else.`
+        },
+        {
+          role: 'user' as const,
+          content: 'Generate a greeting for me.'
+        }
+      ];
+      
+      // Get AI-generated greeting
+      const greetingResponse = await deepseek.createChatCompletion(greetingMessages, {
+        temperature: 0.9,
+        max_tokens: 150
+      });
+      
+      const greeting = greetingResponse.choices[0]?.message?.content || 
+        `Hey! How are you doing this ${timeOfDay}?`;
+      
+      // Add greeting to memory
+      memory.addMessage('assistant', greeting);
+      
+      return NextResponse.json({
+        message: greeting
+      });
+    }
+    
     // Check for crisis language
     const crisisCheck = await deepseek.detectCrisisLanguage(message);
     

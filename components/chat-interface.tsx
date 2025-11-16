@@ -190,22 +190,91 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
     });
   }, [initialLoadComplete, messages.length, startMood, endMood]);
 
-  const handleStartMoodRating = (mood: number) => {
+  const handleStartMoodRating = async (mood: number) => {
     setStartMood(mood);
     setShowStartMoodRating(false);
     setConversationStarted(true);
+    setIsLoading(true);
     
-    // Add personalized greeting as first message
-    const { getTimeBasedGreeting } = require('@/lib/greeting');
-    const greeting = getTimeBasedGreeting();
-    
-    const greetingMessage: Message = {
-      role: 'assistant',
-      content: greeting,
-      timestamp: Date.now()
-    };
-    
-    setMessages([greetingMessage]);
+    try {
+      // Get API credentials
+      const apiKey = typeof window !== 'undefined' ? localStorage.getItem('deepseek-api-key') : null;
+      const apiUrl = typeof window !== 'undefined' ? localStorage.getItem('deepseek-api-url') : 'https://api.deepseek.com/v1';
+      const model = typeof window !== 'undefined' ? localStorage.getItem('deepseek-model') : 'deepseek-v3';
+      
+      if (!apiKey) {
+        // Fallback to local greeting if no API key
+        const { getTimeBasedGreeting } = require('@/lib/greeting');
+        const greeting = getTimeBasedGreeting();
+        
+        const greetingMessage: Message = {
+          role: 'assistant',
+          content: greeting,
+          timestamp: Date.now()
+        };
+        
+        setMessages([greetingMessage]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Generate AI greeting with full context
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: '[GREETING_REQUEST]', // Special marker for greeting
+          sessionId,
+          apiKey,
+          apiUrl: apiUrl || 'https://api.deepseek.com/v1',
+          model: model || 'deepseek-v3',
+          tone,
+          isGreeting: true // Flag to indicate this is a greeting request
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        const greetingMessage: Message = {
+          role: 'assistant',
+          content: data.message,
+          timestamp: Date.now()
+        };
+        
+        setMessages([greetingMessage]);
+      } else {
+        // Fallback to local greeting on error
+        const { getTimeBasedGreeting } = require('@/lib/greeting');
+        const greeting = getTimeBasedGreeting();
+        
+        const greetingMessage: Message = {
+          role: 'assistant',
+          content: greeting,
+          timestamp: Date.now()
+        };
+        
+        setMessages([greetingMessage]);
+      }
+    } catch (error) {
+      console.error('Failed to generate AI greeting:', error);
+      
+      // Fallback to local greeting
+      const { getTimeBasedGreeting } = require('@/lib/greeting');
+      const greeting = getTimeBasedGreeting();
+      
+      const greetingMessage: Message = {
+        role: 'assistant',
+        content: greeting,
+        timestamp: Date.now()
+      };
+      
+      setMessages([greetingMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEndMoodRating = async (mood: number) => {
