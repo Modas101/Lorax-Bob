@@ -15,7 +15,6 @@ interface MoodRatingProps {
 
 export function MoodRating({ title, description, onRate, showSkip }: MoodRatingProps) {
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
-  const [hoveredMood, setHoveredMood] = useState<number | null>(null);
 
   const moods = [1, 2, 3, 4, 5];
 
@@ -44,21 +43,17 @@ export function MoodRating({ title, description, onRate, showSkip }: MoodRatingP
                 <button
                   key={mood}
                   onClick={() => setSelectedMood(mood)}
-                  onMouseEnter={() => setHoveredMood(mood)}
-                  onMouseLeave={() => setHoveredMood(null)}
                   className={`flex-1 aspect-square rounded-lg border-2 transition-all flex items-center justify-center text-2xl font-bold ${
                     selectedMood === mood
                       ? 'scale-110 shadow-lg'
-                      : hoveredMood === mood
-                      ? 'scale-105'
-                      : 'scale-100'
+                      : 'hover:opacity-80'
                   }`}
                   style={{
-                    backgroundColor: selectedMood === mood || hoveredMood === mood 
+                    backgroundColor: selectedMood === mood 
                       ? getMoodColor(mood) 
                       : 'transparent',
                     borderColor: getMoodColor(mood),
-                    color: selectedMood === mood || hoveredMood === mood ? 'white' : getMoodColor(mood),
+                    color: selectedMood === mood ? 'white' : getMoodColor(mood),
                   }}
                 >
                   {mood}
@@ -72,17 +67,21 @@ export function MoodRating({ title, description, onRate, showSkip }: MoodRatingP
               <span>Great</span>
             </div>
 
-            {/* Selected Mood Description */}
-            {(selectedMood || hoveredMood) && (
-              <div className="text-center p-3 rounded-lg bg-muted">
-                <p className="text-sm font-medium" style={{ color: getMoodColor(hoveredMood || selectedMood!) }}>
-                  {getMoodLabel(hoveredMood || selectedMood!)}
+            {/* Selected Mood Description - Always reserve space */}
+            <div className="text-center p-3 rounded-lg bg-muted min-h-[52px] flex items-center justify-center">
+              {selectedMood ? (
+                <p className="text-sm font-medium" style={{ color: getMoodColor(selectedMood) }}>
+                  {getMoodLabel(selectedMood)}
                 </p>
-              </div>
-            )}
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Select a mood rating above
+                </p>
+              )}
+            </div>
           </div>
 
-          {/* Buttons */}
+          {/* Buttons - Always visible */}
           <div className="flex gap-2">
             <Button 
               onClick={handleSubmit} 
