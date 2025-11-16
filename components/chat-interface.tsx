@@ -759,9 +759,22 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
   };
 
   return (
-    <div className="flex flex-col h-full max-w-4xl mx-auto">
-      <Card className="flex flex-col flex-1 overflow-hidden bg-black/40 backdrop-blur-xl border-white/20">
-        <CardHeader className="border-b border-white/10 bg-black/20">
+    <div className="relative flex flex-col h-screen w-full overflow-hidden">
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: 'url(/bright-path-bg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      />
+      
+      {/* Chat Interface - Floating in upper-middle area */}
+      <div className="relative z-10 flex-1 flex flex-col items-center pt-8 pb-4 px-4">
+        <Card className="w-full max-w-3xl h-[calc(100vh-250px)] flex flex-col overflow-hidden bg-white shadow-2xl">
+        <CardHeader className="border-b bg-white">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
@@ -890,20 +903,20 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
 
           {/* Messages Area */}
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-            {messages.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-center">
-                <div className="max-w-md space-y-4">
-                  <Heart className="w-12 h-12 mx-auto text-rose-300" />
-                  <p className="text-lg text-white">Welcome! I&apos;m here to listen.</p>
-                  <p className="text-sm text-white/80">
-                    Feel free to share whatever&apos;s on your mind. This is a judgment-free space
-                    where you can express your thoughts and feelings.
-                  </p>
-                  <p className="text-xs text-white/60">
-                    Note: I&apos;m not a therapist or counselor - just a supportive listener.
-                  </p>
+              {messages.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-center">
+                  <div className="max-w-md space-y-4">
+                    <Heart className="w-12 h-12 mx-auto text-rose-500" />
+                    <p className="text-lg text-black font-medium">Welcome! I&apos;m here to listen.</p>
+                    <p className="text-sm text-gray-700">
+                      Feel free to share whatever&apos;s on your mind. This is a judgment-free space
+                      where you can express your thoughts and feelings.
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Note: I&apos;m not a therapist or counselor - just a supportive listener.
+                    </p>
+                  </div>
                 </div>
-              </div>
             ) : (
               <div className="space-y-4">
                 {messages.map((msg, idx) => {
@@ -928,19 +941,19 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
                           <span className="text-xs text-muted-foreground">{currentAvatar.name}</span>
                         </div>
                       )}
-                      <div
-                        className={`max-w-[80%] rounded-lg px-4 py-2 backdrop-blur-sm ${
-                          msg.role === 'user'
-                            ? 'bg-blue-600/80 text-white border border-blue-500/50'
-                            : 'bg-white/10 text-white border border-white/20'
-                        }`}
-                      >
-                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                        <p className={`text-xs mt-1 ${
-                          msg.role === 'user' 
-                            ? 'text-white/70' 
-                            : 'text-white/60'
-                        }`}>
+                        <div
+                          className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                            msg.role === 'user'
+                              ? 'bg-black text-white'
+                              : 'bg-gray-100 text-black border border-gray-200'
+                          }`}
+                        >
+                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                          <p className={`text-xs mt-1 ${
+                            msg.role === 'user' 
+                              ? 'text-white/70' 
+                              : 'text-gray-500'
+                          }`}>
                           {formatTime(msg.timestamp)}
                         </p>
                       </div>
@@ -949,17 +962,22 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
                 })}
                 {isLoading && (
                   <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg px-4 py-2">
-                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    <div className="bg-gray-100 rounded-lg px-4 py-2 border border-gray-200">
+                      <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
                     </div>
                   </div>
                 )}
               </div>
             )}
           </ScrollArea>
+        </CardContent>
+      </Card>
+      </div>
 
-          {/* Input Area */}
-          <div className="border-t border-white/10 p-4 bg-black/20">
+      {/* Input Area - Fixed at bottom between mountains */}
+      <div className="relative z-10 pb-8 px-4">
+        <Card className="w-full max-w-2xl mx-auto bg-white shadow-2xl">
+          <CardContent className="p-4">
             <div className="flex gap-2">
               <Input
                 ref={inputRef}
@@ -968,12 +986,13 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
                 onKeyPress={handleKeyPress}
                 placeholder="Share what's on your mind..."
                 disabled={isLoading}
-                className="flex-1"
+                className="flex-1 bg-white border-gray-300"
               />
               <Button
                 onClick={handleSend}
                 disabled={isLoading || !input.trim()}
                 size="icon"
+                className="bg-black hover:bg-gray-800 text-white"
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -982,12 +1001,12 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
                 )}
               </Button>
             </div>
-            <p className="text-xs text-white/60 mt-2">
+            <p className="text-xs text-gray-600 mt-2">
               Press Enter to send • This is not a substitute for professional mental health care
             </p>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* API Key Configuration Dialog */}
       {showApiDialog && (
