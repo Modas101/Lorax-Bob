@@ -173,7 +173,7 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
           conversationLength: messages.length
         });
 
-        // Clear conversation and navigate to journal immediately
+        // Clear conversation and start fresh
         setMessages([]);
         setStartMood(null);
         setEndMood(null);
@@ -184,9 +184,9 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
           localStorage.removeItem(STORAGE_KEY);
         }
         
-        // Navigate to journal to view the saved entry
+        // Show start mood rating for new conversation
         setTimeout(() => {
-          onNavigateToJournal?.();
+          setShowStartMoodRating(true);
         }, 500);
       }
     } catch (error) {
