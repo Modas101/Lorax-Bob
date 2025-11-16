@@ -404,7 +404,18 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
         timestamp: Date.now()
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages(prev => {
+        const newMessages = [...prev, assistantMessage];
+        
+        // Extract facts every 3 user messages (6 total messages)
+        if (newMessages.length >= 6 && newMessages.length % 6 === 0) {
+          console.log('Triggering fact extraction at', newMessages.length, 'messages');
+          // Use setTimeout to ensure state is updated
+          setTimeout(() => extractFacts(newMessages), 100);
+        }
+        
+        return newMessages;
+      });
 
       // Update crisis info
       if (data.crisisDetected) {
@@ -441,54 +452,67 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
     } finally {
       setIsLoading(false);
       inputRef.current?.focus();
-      
-      // Extract facts every 3 messages
-      if (messages.length > 0 && messages.length % 3 === 0) {
-        extractFacts();
-      }
     }
   };
 
   // Extract facts from recent conversation
-  const extractFacts = async () => {
+  const extractFacts = async (messagesList: Message[]) => {
+    console.log('extractFacts called with', messagesList.length, 'messages');
+    
     try {
       const apiKey = typeof window !== 'undefined' ? localStorage.getItem('deepseek-api-key') : null;
       const apiUrl = typeof window !== 'undefined' ? localStorage.getItem('deepseek-api-url') : 'https://api.deepseek.com/v1';
       const model = typeof window !== 'undefined' ? localStorage.getItem('deepseek-model') : 'deepseek-v3';
 
-      if (!apiKey) return;
+      if (!apiKey) {
+        console.log('No API key, skipping fact extraction');
+        return;
+      }
 
+      console.log('Sending request to extract facts...');
+      
       const response = await fetch('/api/extract-facts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: messages.map(m => ({ role: m.role, content: m.content })),
+          messages: messagesList.map(m => ({ role: m.role, content: m.content })),
           apiKey,
           apiUrl: apiUrl || 'https://api.deepseek.com/v1',
           model: model || 'deepseek-v3'
         })
       });
 
+      console.log('Extract facts response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('Extracted facts data:', data);
         
         // Save extracted facts
         if (data.facts && Array.isArray(data.facts)) {
+          console.log(`Found ${data.facts.length} facts to save`);
+          
           data.facts.forEach((fact: any) => {
-            saveUserFact({
+            const savedFact = saveUserFact({
               type: fact.type,
               content: fact.content,
               context: fact.context,
               importance: fact.importance || 'medium'
             });
+            console.log('Saved fact:', savedFact);
           });
           
           if (data.facts.length > 0) {
-            console.log(`Extracted ${data.facts.length} new facts from conversation`);
+            console.log(`✅ Extracted and saved ${data.facts.length} facts`);
+            console.log('Current user facts:', getUserFacts());
+          } else {
+            console.log('No new facts extracted from this conversation');
           }
         }
+      } else {
+        console.error('Extract facts API error:', response.status, await response.text());
       }
     } catch (error) {
       console.error('Failed to extract facts:', error);
