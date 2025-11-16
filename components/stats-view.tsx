@@ -23,22 +23,27 @@ export function StatsView() {
     date: new Date(entry.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }));
 
-  // Get entries by time range
+  // Get entries by time range - using continuous timestamps
   const getEntriesByTimeRange = (days: number) => {
     const now = Date.now();
     const cutoff = now - (days * 24 * 60 * 60 * 1000);
     
     const filtered = entries.filter(e => e.timestamp >= cutoff);
     
-    return filtered.reverse().map(entry => ({
+    // Sort by timestamp to ensure continuous plotting
+    return filtered.sort((a, b) => a.timestamp - b.timestamp).map(entry => ({
+      timestamp: entry.timestamp, // Use timestamp as primary x-axis value
+      startMood: entry.startMood,
+      endMood: entry.endMood,
       date: new Date(entry.timestamp).toLocaleDateString('en-US', { 
         month: 'short', 
         day: 'numeric',
         ...(days > 31 ? { year: '2-digit' } : {})
       }),
-      startMood: entry.startMood,
-      endMood: entry.endMood,
-      timestamp: entry.timestamp
+      time: new Date(entry.timestamp).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit'
+      })
     }));
   };
 
@@ -226,14 +231,52 @@ export function StatsView() {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
-                      dataKey="date" 
+                      dataKey="timestamp"
+                      type="number"
+                      domain={['dataMin', 'dataMax']}
+                      scale="time"
+                      tickFormatter={(timestamp) => {
+                        const date = new Date(timestamp);
+                        if (timeRange === 7) {
+                          // Show day and time for 7 days
+                          return date.toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric',
+                            hour: 'numeric'
+                          });
+                        } else if (timeRange === 30) {
+                          // Show month and day for 1 month
+                          return date.toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric'
+                          });
+                        } else {
+                          // Show month and year for longer periods
+                          return date.toLocaleDateString('en-US', { 
+                            month: 'short',
+                            ...(timeRange >= 180 ? { year: '2-digit' } : {})
+                          });
+                        }
+                      }}
                       tick={{ fontSize: 12 }}
-                      angle={timeRangeData.length > 10 ? -45 : 0}
-                      textAnchor={timeRangeData.length > 10 ? "end" : "middle"}
-                      height={timeRangeData.length > 10 ? 80 : 60}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
                     />
                     <YAxis domain={[0, 6]} ticks={[0, 1, 2, 3, 4, 5]} />
-                    <Tooltip />
+                    <Tooltip 
+                      labelFormatter={(timestamp) => {
+                        const date = new Date(timestamp);
+                        return `${date.toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric',
+                          year: 'numeric'
+                        })} at ${date.toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit'
+                        })}`;
+                      }}
+                    />
                     <Area 
                       type="monotone" 
                       dataKey="startMood" 
