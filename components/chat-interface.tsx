@@ -551,10 +551,7 @@ export function ChatInterface({ onNavigateToJournal, onBackgroundUpdate, uiTrans
           localStorage.removeItem(MOOD_STATE_KEY);
         }
         
-        // Show start mood rating for new conversation
-        setTimeout(() => {
-          setShowStartMoodRating(true);
-        }, 500);
+        // Don't auto-show mood rating - user will click "Start Session" when ready
       }
     } catch (error) {
       console.error('Failed to generate summary:', error);
