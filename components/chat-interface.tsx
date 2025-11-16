@@ -776,33 +776,24 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
               {/* Avatar Selector */}
               <Select value={selectedAvatar} onValueChange={setSelectedAvatar}>
                 <SelectTrigger className="w-[140px] h-9">
-                  {allAvatars.find(a => a.id === selectedAvatar)?.imageUrl ? (
-                    <img 
-                      src={allAvatars.find(a => a.id === selectedAvatar)?.imageUrl} 
-                      alt="Avatar" 
-                      className="w-5 h-5 rounded-full object-cover mr-2"
-                    />
-                  ) : (
-                    <span className="text-lg mr-2">{allAvatars.find(a => a.id === selectedAvatar)?.emoji}</span>
-                  )}
                   <SelectValue placeholder="Avatar" />
                 </SelectTrigger>
                 <SelectContent>
                   {allAvatars.map(avatar => (
                     <SelectItem key={avatar.id} value={avatar.id}>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         {avatar.imageUrl ? (
                           <img 
                             src={avatar.imageUrl} 
                             alt={avatar.name} 
-                            className="w-6 h-6 rounded-full object-cover"
+                            className="w-6 h-6 rounded-full object-cover flex-shrink-0"
                           />
                         ) : (
-                          <span className="text-lg">{avatar.emoji}</span>
+                          <span className="text-lg flex-shrink-0">{avatar.emoji}</span>
                         )}
-                        <div className="flex flex-col">
-                          <span className="font-medium">{avatar.name}</span>
-                          <span className="text-xs text-muted-foreground">{avatar.description}</span>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="font-medium truncate">{avatar.name}</span>
+                          <span className="text-xs text-muted-foreground truncate">{avatar.description}</span>
                         </div>
                       </div>
                     </SelectItem>
