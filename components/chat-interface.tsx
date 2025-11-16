@@ -112,11 +112,13 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
   // Save mood state to localStorage whenever it changes
   useEffect(() => {
     if (typeof window !== 'undefined' && initialLoadComplete) {
-      localStorage.setItem(MOOD_STATE_KEY, JSON.stringify({
+      const moodStateToSave = {
         startMood,
         endMood,
         conversationStarted
-      }));
+      };
+      console.log('Saving mood state to localStorage:', moodStateToSave);
+      localStorage.setItem(MOOD_STATE_KEY, JSON.stringify(moodStateToSave));
     }
   }, [startMood, endMood, conversationStarted, initialLoadComplete]);
 
@@ -139,9 +141,19 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
       } else if (messages.length === 0 && !conversationStarted && !startMood) {
         // Show start mood rating ONLY if truly a new conversation
         setShowStartMoodRating(true);
+      } else if (messages.length > 0 && !startMood && !conversationStarted) {
+        // Orphaned conversation detected: messages exist but no mood state
+        console.log('Orphaned conversation detected - clearing messages');
+        // Clear the orphaned conversation
+        setMessages([]);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(STORAGE_KEY);
+        }
+        // Show start mood rating for a fresh start
+        setShowStartMoodRating(true);
       }
     }
-  }, [initialLoadComplete]); // Only run once after initial load
+  }, [initialLoadComplete, messages.length, startMood, conversationStarted]); // Check when state updates
 
   // Focus input on mount
   useEffect(() => {
