@@ -62,6 +62,7 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
   const [endMood, setEndMood] = useState<number | null>(null);
   const [conversationStarted, setConversationStarted] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Tone preference
   const [tone, setTone] = useState<string>('empathetic');
@@ -298,13 +299,16 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
     } else {
       // Mood improved or stayed same, save directly
       if (startMood) {
+        setIsSaving(true);
         await generateAndSaveJournal(mood);
+        setIsSaving(false);
       }
     }
   };
 
   const handleMoodFeedback = async (feedback: string) => {
     setShowMoodFeedback(false);
+    setIsSaving(true);
 
     let interpretation = '';
     
@@ -343,6 +347,8 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
     if (startMood && endMood) {
       await generateAndSaveJournal(endMood, feedback, interpretation);
     }
+    
+    setIsSaving(false);
   };
 
   const generateAndSaveJournal = async (finalMood: number, userFeedback?: string, aiInterpretation?: string) => {
@@ -868,6 +874,25 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
           endMood={endMood}
           onSubmit={handleMoodFeedback}
         />
+      )}
+
+      {/* Saving/Loading Screen */}
+      {isSaving && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center justify-center space-y-4 py-8">
+                <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                <div className="text-center space-y-2">
+                  <h3 className="text-lg font-semibold">Saving Your Conversation</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Generating journal summary and preparing a fresh start...
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
