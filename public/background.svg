@@ -1,0 +1,33 @@
+<svg width="1280" height="1024" viewBox="0 0 1280 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient Background -->
+  <defs>
+    <linearGradient id="bgGradient" x1="640" y1="0" x2="640" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0a2540"/>
+      <stop offset="50%" stop-color="#1e4976"/>
+      <stop offset="100%" stop-color="#2d5a8a"/>
+    </linearGradient>
+    <radialGradient id="lightGlow" cx="50%" cy="45%" r="30%">
+      <stop offset="0%" stop-color="#4a90e2" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#0a2540" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1280" height="1024" fill="url(#bgGradient)"/>
+  
+  <!-- Decorative circles -->
+  <circle cx="150" cy="350" r="120" fill="#1e4976" opacity="0.3"/>
+  <circle cx="1130" cy="350" r="120" fill="#1e4976" opacity="0.3"/>
+  <circle cx="200" cy="750" r="200" fill="#2d5a8a" opacity="0.4"/>
+  <circle cx="1080" cy="750" r="200" fill="#2d5a8a" opacity="0.4"/>
+  
+  <!-- Center glow -->
+  <ellipse cx="640" cy="450" rx="400" ry="300" fill="url(#lightGlow)"/>
+  
+  <!-- Stars -->
+  <path d="M40 30 L42 36 L48 36 L43 40 L45 46 L40 42 L35 46 L37 40 L32 36 L38 36 Z" fill="white" opacity="0.8"/>
+  <path d="M1240 30 L1242 36 L1248 36 L1243 40 L1245 46 L1240 42 L1235 46 L1237 40 L1232 36 L1238 36 Z" fill="white" opacity="0.8"/>
+  <path d="M40 910 L42 916 L48 916 L43 920 L45 926 L40 922 L35 926 L37 920 L32 916 L38 916 Z" fill="white" opacity="0.8"/>
+  <path d="M1240 910 L1242 916 L1248 916 L1243 920 L1245 926 L1240 922 L1235 926 L1237 920 L1232 916 L1238 916 Z" fill="white" opacity="0.8"/>
+</svg>
+
