@@ -6,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Send, Loader2, AlertCircle, Heart, Trash2, Settings, BookOpen, MessageCircle, User } from 'lucide-react';
+import { Send, Loader2, AlertCircle, Heart, Trash2, Settings, BookOpen, MessageCircle, User, Plus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ApiKeyDialog } from './api-key-dialog';
 import { MoodRating } from './mood-rating';
 import { MoodFeedback } from './mood-feedback';
+import { CustomAvatarDialog } from './custom-avatar-dialog';
 import { saveJournalEntry } from '@/lib/journal';
 import { saveUserFact, getUserFacts } from '@/lib/user-memory';
 
@@ -24,12 +25,14 @@ interface Message {
 interface Avatar {
   id: string;
   name: string;
-  emoji: string;
+  emoji?: string;
+  imageUrl?: string;
   description: string;
   personality: string;
+  isCustom?: boolean;
 }
 
-const AVATARS: Avatar[] = [
+const DEFAULT_AVATARS: Avatar[] = [
   {
     id: 'sage',
     name: 'Sage',
@@ -63,6 +66,7 @@ const SESSION_KEY = 'ai-therapist-session-id';
 const MOOD_STATE_KEY = 'ai-therapist-mood-state';
 const TONE_KEY = 'ai-therapist-tone';
 const AVATAR_KEY = 'ai-therapist-avatar';
+const CUSTOM_AVATARS_KEY = 'ai-therapist-custom-avatars';
 
 interface ChatInterfaceProps {
   onNavigateToJournal?: () => void;
@@ -103,6 +107,8 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
   
   // Avatar selection
   const [selectedAvatar, setSelectedAvatar] = useState<string>('luna');
+  const [customAvatars, setCustomAvatars] = useState<Avatar[]>([]);
+  const [showAvatarDialog, setShowAvatarDialog] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -154,6 +160,17 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
         setSelectedAvatar(savedAvatar);
       }
 
+      // Load custom avatars
+      const savedCustomAvatars = localStorage.getItem(CUSTOM_AVATARS_KEY);
+      if (savedCustomAvatars) {
+        try {
+          const parsed = JSON.parse(savedCustomAvatars);
+          setCustomAvatars(parsed);
+        } catch (error) {
+          console.error('Failed to parse custom avatars:', error);
+        }
+      }
+
       setInitialLoadComplete(true);
     }
   }, []);
@@ -191,6 +208,16 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
       localStorage.setItem(AVATAR_KEY, selectedAvatar);
     }
   }, [selectedAvatar, initialLoadComplete]);
+
+  // Save custom avatars to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && initialLoadComplete) {
+      localStorage.setItem(CUSTOM_AVATARS_KEY, JSON.stringify(customAvatars));
+    }
+  }, [customAvatars, initialLoadComplete]);
+
+  // Get all avatars (default + custom)
+  const allAvatars = [...DEFAULT_AVATARS, ...customAvatars];
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -277,7 +304,7 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
       console.log('📤 [CLIENT] Sending user facts to server:', userFacts.length, 'facts');
       console.log('📤 [CLIENT] Sending journal entries to server:', journalEntries.length, 'entries');
 
-      const currentAvatar = AVATARS.find(a => a.id === selectedAvatar);
+      const currentAvatar = allAvatars.find((a: Avatar) => a.id === selectedAvatar);
 
       // Generate AI greeting with full context
       const response = await fetch('/api/chat', {
@@ -522,7 +549,7 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
       const { getJournalEntries } = require('@/lib/journal');
       const journalEntries = getJournalEntries();
       
-      const currentAvatar = AVATARS.find(a => a.id === selectedAvatar);
+      const currentAvatar = allAvatars.find((a: Avatar) => a.id === selectedAvatar);
       
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -683,6 +710,12 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
     }
   };
 
+  const handleCreateCustomAvatar = (avatar: Avatar) => {
+    setCustomAvatars(prev => [...prev, avatar]);
+    setSelectedAvatar(avatar.id);
+    setShowAvatarDialog(false);
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -743,14 +776,30 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
               {/* Avatar Selector */}
               <Select value={selectedAvatar} onValueChange={setSelectedAvatar}>
                 <SelectTrigger className="w-[140px] h-9">
-                  <span className="text-lg mr-2">{AVATARS.find(a => a.id === selectedAvatar)?.emoji}</span>
+                  {allAvatars.find(a => a.id === selectedAvatar)?.imageUrl ? (
+                    <img 
+                      src={allAvatars.find(a => a.id === selectedAvatar)?.imageUrl} 
+                      alt="Avatar" 
+                      className="w-5 h-5 rounded-full object-cover mr-2"
+                    />
+                  ) : (
+                    <span className="text-lg mr-2">{allAvatars.find(a => a.id === selectedAvatar)?.emoji}</span>
+                  )}
                   <SelectValue placeholder="Avatar" />
                 </SelectTrigger>
                 <SelectContent>
-                  {AVATARS.map(avatar => (
+                  {allAvatars.map(avatar => (
                     <SelectItem key={avatar.id} value={avatar.id}>
                       <div className="flex items-center gap-2">
-                        <span className="text-lg">{avatar.emoji}</span>
+                        {avatar.imageUrl ? (
+                          <img 
+                            src={avatar.imageUrl} 
+                            alt={avatar.name} 
+                            className="w-6 h-6 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-lg">{avatar.emoji}</span>
+                        )}
                         <div className="flex flex-col">
                           <span className="font-medium">{avatar.name}</span>
                           <span className="text-xs text-muted-foreground">{avatar.description}</span>
@@ -758,6 +807,20 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
                       </div>
                     </SelectItem>
                   ))}
+                  <div className="border-t mt-1 pt-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowAvatarDialog(true);
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Custom
+                    </Button>
+                  </div>
                 </SelectContent>
               </Select>
 
@@ -853,7 +916,7 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
             ) : (
               <div className="space-y-4">
                 {messages.map((msg, idx) => {
-                  const currentAvatar = AVATARS.find(a => a.id === selectedAvatar);
+                  const currentAvatar = allAvatars.find(a => a.id === selectedAvatar);
                   
                   return (
                     <div
@@ -862,7 +925,15 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
                     >
                       {msg.role === 'assistant' && currentAvatar && (
                         <div className="flex flex-col items-center mr-2 mt-1">
-                          <div className="text-3xl mb-1">{currentAvatar.emoji}</div>
+                          {currentAvatar.imageUrl ? (
+                            <img 
+                              src={currentAvatar.imageUrl} 
+                              alt={currentAvatar.name} 
+                              className="w-12 h-12 rounded-full object-cover mb-1"
+                            />
+                          ) : (
+                            <div className="text-3xl mb-1">{currentAvatar.emoji}</div>
+                          )}
                           <span className="text-xs text-muted-foreground">{currentAvatar.name}</span>
                         </div>
                       )}
@@ -966,6 +1037,14 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
           startMood={startMood}
           endMood={endMood}
           onSubmit={handleMoodFeedback}
+        />
+      )}
+
+      {/* Custom Avatar Dialog */}
+      {showAvatarDialog && (
+        <CustomAvatarDialog
+          onSave={handleCreateCustomAvatar}
+          onCancel={() => setShowAvatarDialog(false)}
         />
       )}
 
