@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Send, Loader2, AlertCircle, Heart, Trash2, Settings, BookOpen } from 'lucide-react';
+import { Send, Loader2, AlertCircle, Heart, Trash2, Settings, BookOpen, MessageCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ApiKeyDialog } from './api-key-dialog';
 import { MoodRating } from './mood-rating';
 import { MoodFeedback } from './mood-feedback';
@@ -26,6 +27,7 @@ interface CrisisInfo {
 const STORAGE_KEY = 'ai-therapist-conversation';
 const SESSION_KEY = 'ai-therapist-session-id';
 const MOOD_STATE_KEY = 'ai-therapist-mood-state';
+const TONE_KEY = 'ai-therapist-tone';
 
 interface ChatInterfaceProps {
   onNavigateToJournal?: () => void;
@@ -59,6 +61,9 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
   const [endMood, setEndMood] = useState<number | null>(null);
   const [conversationStarted, setConversationStarted] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  
+  // Tone preference
+  const [tone, setTone] = useState<string>('empathetic');
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -98,6 +103,12 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
         }
       }
 
+      // Load tone preference
+      const savedTone = localStorage.getItem(TONE_KEY);
+      if (savedTone) {
+        setTone(savedTone);
+      }
+
       setInitialLoadComplete(true);
     }
   }, []);
@@ -121,6 +132,13 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
       localStorage.setItem(MOOD_STATE_KEY, JSON.stringify(moodStateToSave));
     }
   }, [startMood, endMood, conversationStarted, initialLoadComplete]);
+
+  // Save tone preference to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && initialLoadComplete) {
+      localStorage.setItem(TONE_KEY, tone);
+    }
+  }, [tone, initialLoadComplete]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -367,7 +385,8 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
           sessionId,
           apiKey,
           apiUrl: apiUrl || 'https://api.deepseek.com/v1',
-          model: model || 'deepseek-v3'
+          model: model || 'deepseek-v3',
+          tone
         })
       });
 
@@ -481,6 +500,20 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              {/* Tone Selector */}
+              <Select value={tone} onValueChange={setTone}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Tone" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="empathetic">Empathetic</SelectItem>
+                  <SelectItem value="humorous">Humorous</SelectItem>
+                  <SelectItem value="blunt">Blunt</SelectItem>
+                  <SelectItem value="therapist-like">Therapist-like</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Button
                 variant="ghost"
                 size="sm"

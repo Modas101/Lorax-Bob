@@ -9,7 +9,7 @@ const sessionMemories = new Map<string, MemoryManager>();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, sessionId, apiKey, apiUrl, model } = body;
+    const { message, sessionId, apiKey, apiUrl, model, tone } = body;
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
     // Get journal context for continuity
     const journalContext = getRecentJournalContext();
     
-    // Get messages for API call with journal context
-    const apiMessages = memory.getMessagesForAPI(journalContext);
+    // Get messages for API call with journal context and tone
+    const apiMessages = memory.getMessagesForAPI(journalContext, tone || 'empathetic');
 
     // If crisis detected, add a system message to guide the response
     if (crisisCheck.isCrisis) {
