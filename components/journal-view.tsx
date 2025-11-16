@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
   BookOpen, 
   TrendingUp, 
@@ -12,7 +12,8 @@ import {
   Minus, 
   Calendar, 
   Trash2,
-  BarChart3 
+  BarChart3,
+  AlertCircle
 } from 'lucide-react';
 import { 
   JournalEntry, 
@@ -281,6 +282,22 @@ export function JournalView() {
                     ))}
                   </ul>
                 </div>
+              )}
+
+              {/* User Feedback (when mood dropped) */}
+              {selectedEntry.userFeedback && (
+                <Alert className="border-orange-500/50 bg-orange-50/50 dark:bg-orange-950/20">
+                  <AlertCircle className="h-4 w-4 text-orange-500" />
+                  <AlertTitle className="text-sm font-semibold">Improvement Feedback</AlertTitle>
+                  <AlertDescription className="text-xs space-y-2">
+                    <p><strong>User feedback:</strong> "{selectedEntry.userFeedback}"</p>
+                    {selectedEntry.aiInterpretation && (
+                      <p className="text-orange-700 dark:text-orange-400">
+                        <strong>AI interpretation:</strong> {selectedEntry.aiInterpretation}
+                      </p>
+                    )}
+                  </AlertDescription>
+                </Alert>
               )}
 
               {/* Conversation Info */}

@@ -11,6 +11,8 @@ export interface JournalEntry {
   keyPoints: string[];
   developments: string[];
   conversationLength: number; // number of messages
+  userFeedback?: string; // User's explanation when mood dropped
+  aiInterpretation?: string; // AI's interpretation of the feedback
 }
 
 const JOURNAL_STORAGE_KEY = 'ai-therapist-journal';

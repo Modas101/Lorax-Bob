@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Send, Loader2, AlertCircle, Heart, Trash2, Settings, BookOpen } from 'lucide-react';
 import { ApiKeyDialog } from './api-key-dialog';
 import { MoodRating } from './mood-rating';
+import { MoodFeedback } from './mood-feedback';
 import { saveJournalEntry } from '@/lib/journal';
 
 interface Message {
@@ -52,6 +53,7 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
   // Mood tracking states
   const [showStartMoodRating, setShowStartMoodRating] = useState(false);
   const [showEndMoodRating, setShowEndMoodRating] = useState(false);
+  const [showMoodFeedback, setShowMoodFeedback] = useState(false);
   const [startMood, setStartMood] = useState<number | null>(null);
   const [endMood, setEndMood] = useState<number | null>(null);
   const [conversationStarted, setConversationStarted] = useState(false);
@@ -131,13 +133,61 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
     setEndMood(mood);
     setShowEndMoodRating(false);
 
-    // Generate summary and save journal entry
-    if (startMood) {
-      await generateAndSaveJournal(mood);
+    // Check if mood dropped
+    if (startMood && mood < startMood) {
+      // Show feedback dialog
+      setShowMoodFeedback(true);
+    } else {
+      // Mood improved or stayed same, save directly
+      if (startMood) {
+        await generateAndSaveJournal(mood);
+      }
     }
   };
 
-  const generateAndSaveJournal = async (finalMood: number) => {
+  const handleMoodFeedback = async (feedback: string) => {
+    setShowMoodFeedback(false);
+
+    let interpretation = '';
+    
+    // If user provided feedback, interpret it with AI
+    if (feedback && endMood) {
+      try {
+        const apiKey = typeof window !== 'undefined' ? localStorage.getItem('deepseek-api-key') : null;
+        const apiUrl = typeof window !== 'undefined' ? localStorage.getItem('deepseek-api-url') : 'https://api.deepseek.com/v1';
+        const model = typeof window !== 'undefined' ? localStorage.getItem('deepseek-model') : 'deepseek-v3';
+
+        if (apiKey) {
+          const response = await fetch('/api/interpret-feedback', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              feedback,
+              apiKey,
+              apiUrl: apiUrl || 'https://api.deepseek.com/v1',
+              model: model || 'deepseek-v3'
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            interpretation = data.interpretation || '';
+          }
+        }
+      } catch (error) {
+        console.error('Failed to interpret feedback:', error);
+      }
+    }
+
+    // Save journal with feedback
+    if (startMood && endMood) {
+      await generateAndSaveJournal(endMood, feedback, interpretation);
+    }
+  };
+
+  const generateAndSaveJournal = async (finalMood: number, userFeedback?: string, aiInterpretation?: string) => {
     try {
       const apiKey = typeof window !== 'undefined' ? localStorage.getItem('deepseek-api-key') : null;
       const apiUrl = typeof window !== 'undefined' ? localStorage.getItem('deepseek-api-url') : 'https://api.deepseek.com/v1';
@@ -162,15 +212,23 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
       if (response.ok) {
         const data = await response.json();
         
+        // Build summary with feedback if mood dropped
+        let enhancedSummary = data.summary || 'No summary available';
+        if (userFeedback && aiInterpretation) {
+          enhancedSummary += `\n\n[Note: User mood dropped. ${aiInterpretation}]`;
+        }
+        
         // Save journal entry
         saveJournalEntry({
           startMood: startMood!,
           endMood: finalMood,
           moodChange: finalMood - startMood!,
-          summary: data.summary || 'No summary available',
+          summary: enhancedSummary,
           keyPoints: data.keyPoints || [],
           developments: data.developments || [],
-          conversationLength: messages.length
+          conversationLength: messages.length,
+          userFeedback: userFeedback || undefined,
+          aiInterpretation: aiInterpretation || undefined
         });
 
         // Clear conversation and start fresh
@@ -333,6 +391,9 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
 
   // Public function for Clear button - shows confirmation
   const handleClearChat = async () => {
+    if (!confirm('Are you sure you want to clear this conversation?')) {
+      return;
+    }
     await clearChatInternal();
   };
 
@@ -529,6 +590,15 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
           title="How are you feeling now?"
           description="Rate your mood from 1 (very difficult) to 5 (great) after our conversation"
           onRate={handleEndMoodRating}
+        />
+      )}
+
+      {/* Mood Feedback (when mood dropped) */}
+      {showMoodFeedback && startMood && endMood && (
+        <MoodFeedback
+          startMood={startMood}
+          endMood={endMood}
+          onSubmit={handleMoodFeedback}
         />
       )}
     </div>

@@ -92,7 +92,14 @@ export function getRecentJournalContext(): string {
                     daysAgo === 1 ? 'yesterday' : 
                     `${daysAgo} days ago`;
     
-    return `${timeAgo}: ${entry.summary.substring(0, 150)}`;
+    let contextText = `${timeAgo}: ${entry.summary.substring(0, 150)}`;
+    
+    // Include AI interpretation if mood dropped
+    if (entry.aiInterpretation) {
+      contextText += `\n  → Improvement note: ${entry.aiInterpretation}`;
+    }
+    
+    return contextText;
   });
   
   return '\n\nRecent journal entries:\n' + contextParts.join('\n\n');
