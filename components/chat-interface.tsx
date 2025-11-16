@@ -288,9 +288,7 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
 
       if (userSaidNo && previousMessageAskedToContinue && startMood && !endMood) {
         // Trigger end mood rating
-        setTimeout(() => {
-          setShowEndMoodRating(true);
-        }, 1000);
+        setShowEndMoodRating(true);
       }
 
     } catch (error: any) {
