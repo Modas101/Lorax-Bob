@@ -11,7 +11,7 @@ const sessionMemories = new Map<string, MemoryManager>();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, sessionId, apiKey, apiUrl, model, tone, isGreeting, userFacts, journalEntries } = body;
+    const { message, sessionId, apiKey, apiUrl, model, tone, isGreeting, userFacts, journalEntries, avatar } = body;
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -169,10 +169,16 @@ export async function POST(request: NextRequest) {
       console.log(comprehensiveContext || '(No prior context available)');
       
       // Create greeting prompt with full context
+      const avatarInfo = avatar ? `
+
+YOUR CHARACTER:
+You are ${avatar.name}. ${avatar.personality}
+Embody this character naturally in your greeting and responses.` : '';
+
       const greetingMessages = [
         {
           role: 'system' as const,
-          content: `You are a compassionate, empathetic listener. The user is starting a NEW conversation with you right now.
+          content: `You are a compassionate, empathetic listener. The user is starting a NEW conversation with you right now.${avatarInfo}
 
 Below is EVERYTHING you know about this user from past conversations and extracted facts. Use this information to create a personalized, natural greeting.
 
@@ -308,8 +314,8 @@ Generate ONLY the greeting message, nothing else.`
     // Combine all context
     const fullContext = userFactsContext + journalContext;
     
-    // Get messages for API call with full context and tone
-    const apiMessages = memory.getMessagesForAPI(fullContext, tone || 'empathetic');
+    // Get messages for API call with full context, tone, and avatar
+    const apiMessages = memory.getMessagesForAPI(fullContext, tone || 'empathetic', avatar);
 
     // If crisis detected, add a system message to guide the response
     if (crisisCheck.isCrisis) {

@@ -45,13 +45,13 @@ export class MemoryManager {
    * Get messages formatted for API call
    * Returns system prompt + summaries + recent messages
    */
-  getMessagesForAPI(journalContext?: string, tone?: string): Message[] {
+  getMessagesForAPI(journalContext?: string, tone?: string, avatar?: { name: string; personality: string }): Message[] {
     const messages: Message[] = [];
 
-    // Add system prompt with memory context, journal context, and tone
+    // Add system prompt with memory context, journal context, tone, and avatar
     messages.push({
       role: 'system',
-      content: this.getSystemPrompt(journalContext, tone)
+      content: this.getSystemPrompt(journalContext, tone, avatar)
     });
 
     // Add summary of older conversations if exists
@@ -103,7 +103,13 @@ export class MemoryManager {
   /**
    * Get the system prompt with empathetic, supportive instructions
    */
-  getSystemPrompt(journalContext?: string, tone?: string): string {
+  getSystemPrompt(journalContext?: string, tone?: string, avatar?: { name: string; personality: string }): string {
+    // Avatar introduction
+    let prompt = '';
+    if (avatar) {
+      prompt = `You are ${avatar.name}. ${avatar.personality}\n\n`;
+    }
+    
     // Tone-specific introductions
     const toneIntros = {
       'empathetic': 'You are a compassionate, deeply empathetic listener providing emotional support. You prioritize warmth, understanding, and emotional validation.',
@@ -112,7 +118,7 @@ export class MemoryManager {
       'therapist-like': 'You are a thoughtful, professional listener who uses therapeutic techniques. You ask probing questions, identify patterns, and help them develop insight into their emotions and behaviors.'
     };
 
-    let prompt = toneIntros[tone as keyof typeof toneIntros] || toneIntros['empathetic'];
+    prompt += toneIntros[tone as keyof typeof toneIntros] || toneIntros['empathetic'];
     prompt += ' Your role is to be "someone to talk to" for people who need to vent, process feelings, or work through difficult emotions.';
     
     if (journalContext) {

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Send, Loader2, AlertCircle, Heart, Trash2, Settings, BookOpen, MessageCircle } from 'lucide-react';
+import { Send, Loader2, AlertCircle, Heart, Trash2, Settings, BookOpen, MessageCircle, User } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ApiKeyDialog } from './api-key-dialog';
 import { MoodRating } from './mood-rating';
@@ -20,6 +20,39 @@ interface Message {
   timestamp: number;
 }
 
+// Avatar definitions
+interface Avatar {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  personality: string;
+}
+
+const AVATARS: Avatar[] = [
+  {
+    id: 'sage',
+    name: 'Sage',
+    emoji: '🧘',
+    description: 'Calm and wise',
+    personality: 'Sage is calm, thoughtful, and provides gentle wisdom. They speak with patience and understanding, helping you find clarity.'
+  },
+  {
+    id: 'luna',
+    name: 'Luna',
+    emoji: '🌙',
+    description: 'Warm and nurturing',
+    personality: 'Luna is warm, caring, and deeply empathetic. They create a safe space and make you feel heard and valued.'
+  },
+  {
+    id: 'echo',
+    name: 'Echo',
+    emoji: '✨',
+    description: 'Reflective and insightful',
+    personality: 'Echo is perceptive and asks thoughtful questions. They help you explore your thoughts and discover your own answers.'
+  }
+];
+
 interface CrisisInfo {
   detected: boolean;
   severity: 'none' | 'low' | 'moderate' | 'high';
@@ -29,6 +62,7 @@ const STORAGE_KEY = 'ai-therapist-conversation';
 const SESSION_KEY = 'ai-therapist-session-id';
 const MOOD_STATE_KEY = 'ai-therapist-mood-state';
 const TONE_KEY = 'ai-therapist-tone';
+const AVATAR_KEY = 'ai-therapist-avatar';
 
 interface ChatInterfaceProps {
   onNavigateToJournal?: () => void;
@@ -66,6 +100,9 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
   
   // Tone preference
   const [tone, setTone] = useState<string>('empathetic');
+  
+  // Avatar selection
+  const [selectedAvatar, setSelectedAvatar] = useState<string>('luna');
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -111,6 +148,12 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
         setTone(savedTone);
       }
 
+      // Load avatar preference
+      const savedAvatar = localStorage.getItem(AVATAR_KEY);
+      if (savedAvatar) {
+        setSelectedAvatar(savedAvatar);
+      }
+
       setInitialLoadComplete(true);
     }
   }, []);
@@ -141,6 +184,13 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
       localStorage.setItem(TONE_KEY, tone);
     }
   }, [tone, initialLoadComplete]);
+
+  // Save avatar preference to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && initialLoadComplete) {
+      localStorage.setItem(AVATAR_KEY, selectedAvatar);
+    }
+  }, [selectedAvatar, initialLoadComplete]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -227,6 +277,8 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
       console.log('📤 [CLIENT] Sending user facts to server:', userFacts.length, 'facts');
       console.log('📤 [CLIENT] Sending journal entries to server:', journalEntries.length, 'entries');
 
+      const currentAvatar = AVATARS.find(a => a.id === selectedAvatar);
+
       // Generate AI greeting with full context
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -242,7 +294,11 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
           tone,
           isGreeting: true, // Flag to indicate this is a greeting request
           userFacts, // Send user facts from localStorage
-          journalEntries // Send journal entries from localStorage
+          journalEntries, // Send journal entries from localStorage
+          avatar: currentAvatar ? {
+            name: currentAvatar.name,
+            personality: currentAvatar.personality
+          } : undefined
         })
       });
 
@@ -466,6 +522,8 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
       const { getJournalEntries } = require('@/lib/journal');
       const journalEntries = getJournalEntries();
       
+      const currentAvatar = AVATARS.find(a => a.id === selectedAvatar);
+      
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -479,7 +537,11 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
           model: model || 'deepseek-v3',
           tone,
           userFacts, // Send user facts with every message
-          journalEntries // Send journal entries with every message
+          journalEntries, // Send journal entries with every message
+          avatar: currentAvatar ? {
+            name: currentAvatar.name,
+            personality: currentAvatar.personality
+          } : undefined
         })
       });
 
@@ -678,6 +740,27 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              {/* Avatar Selector */}
+              <Select value={selectedAvatar} onValueChange={setSelectedAvatar}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <span className="text-lg mr-2">{AVATARS.find(a => a.id === selectedAvatar)?.emoji}</span>
+                  <SelectValue placeholder="Avatar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AVATARS.map(avatar => (
+                    <SelectItem key={avatar.id} value={avatar.id}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{avatar.emoji}</span>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{avatar.name}</span>
+                          <span className="text-xs text-muted-foreground">{avatar.description}</span>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               {/* Tone Selector */}
               <Select value={tone} onValueChange={setTone}>
                 <SelectTrigger className="w-[140px] h-9">
@@ -769,29 +852,39 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
               </div>
             ) : (
               <div className="space-y-4">
-                {messages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
+                {messages.map((msg, idx) => {
+                  const currentAvatar = AVATARS.find(a => a.id === selectedAvatar);
+                  
+                  return (
                     <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                        msg.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
+                      key={idx}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
-                      <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                      <p className={`text-xs mt-1 ${
-                        msg.role === 'user' 
-                          ? 'text-primary-foreground/70' 
-                          : 'text-muted-foreground'
-                      }`}>
-                        {formatTime(msg.timestamp)}
-                      </p>
+                      {msg.role === 'assistant' && currentAvatar && (
+                        <div className="flex flex-col items-center mr-2 mt-1">
+                          <div className="text-3xl mb-1">{currentAvatar.emoji}</div>
+                          <span className="text-xs text-muted-foreground">{currentAvatar.name}</span>
+                        </div>
+                      )}
+                      <div
+                        className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                          msg.role === 'user'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                        <p className={`text-xs mt-1 ${
+                          msg.role === 'user' 
+                            ? 'text-primary-foreground/70' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          {formatTime(msg.timestamp)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {isLoading && (
                   <div className="flex justify-start">
                     <div className="bg-muted rounded-lg px-4 py-2">
