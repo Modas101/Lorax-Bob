@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DeepSeekClient } from '@/lib/deepseek';
 import { MemoryManager, createSummarizationPrompt, Message } from '@/lib/memory';
 import { getRecentJournalContext } from '@/lib/greeting';
+import { formatFactsForContext } from '@/lib/user-memory';
 
 // Store memory per session (in production, use Redis or similar)
 const sessionMemories = new Map<string, MemoryManager>();
@@ -72,8 +73,14 @@ export async function POST(request: NextRequest) {
     // Get journal context for continuity
     const journalContext = getRecentJournalContext();
     
-    // Get messages for API call with journal context and tone
-    const apiMessages = memory.getMessagesForAPI(journalContext, tone || 'empathetic');
+    // Get user facts context
+    const userFactsContext = formatFactsForContext();
+    
+    // Combine all context
+    const fullContext = journalContext + userFactsContext;
+    
+    // Get messages for API call with full context and tone
+    const apiMessages = memory.getMessagesForAPI(fullContext, tone || 'empathetic');
 
     // If crisis detected, add a system message to guide the response
     if (crisisCheck.isCrisis) {

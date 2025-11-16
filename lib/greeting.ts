@@ -1,9 +1,27 @@
 // Generate personalized greetings based on time of day and context
 
 import { getJournalEntries } from './journal';
+import { getUserFacts, getRelevantFacts } from './user-memory';
 
 export function getTimeBasedGreeting(): string {
   const hour = new Date().getHours();
+  
+  // Check for recent important facts to personalize greeting
+  const recentFacts = getRelevantFacts(5);
+  const recentEvents = recentFacts.filter(f => f.type === 'event' && f.importance === 'high');
+  const recentMoods = recentFacts.filter(f => f.type === 'mood');
+  
+  // If there's a recent important event, reference it
+  if (recentEvents.length > 0 && Math.random() < 0.4) { // 40% chance
+    const event = recentEvents[0];
+    return `Hey! How did ${event.content} go?`;
+  }
+  
+  // If there's a recent mood mentioned, check in on it
+  if (recentMoods.length > 0 && Math.random() < 0.3) { // 30% chance
+    const mood = recentMoods[0];
+    return `Hi there! Are you still ${mood.content}?`;
+  }
   
   // Late night (12am - 4am)
   if (hour >= 0 && hour < 4) {

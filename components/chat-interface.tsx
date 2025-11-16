@@ -12,6 +12,7 @@ import { ApiKeyDialog } from './api-key-dialog';
 import { MoodRating } from './mood-rating';
 import { MoodFeedback } from './mood-feedback';
 import { saveJournalEntry } from '@/lib/journal';
+import { saveUserFact, getUserFacts } from '@/lib/user-memory';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -440,6 +441,58 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
     } finally {
       setIsLoading(false);
       inputRef.current?.focus();
+      
+      // Extract facts every 3 messages
+      if (messages.length > 0 && messages.length % 3 === 0) {
+        extractFacts();
+      }
+    }
+  };
+
+  // Extract facts from recent conversation
+  const extractFacts = async () => {
+    try {
+      const apiKey = typeof window !== 'undefined' ? localStorage.getItem('deepseek-api-key') : null;
+      const apiUrl = typeof window !== 'undefined' ? localStorage.getItem('deepseek-api-url') : 'https://api.deepseek.com/v1';
+      const model = typeof window !== 'undefined' ? localStorage.getItem('deepseek-model') : 'deepseek-v3';
+
+      if (!apiKey) return;
+
+      const response = await fetch('/api/extract-facts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: messages.map(m => ({ role: m.role, content: m.content })),
+          apiKey,
+          apiUrl: apiUrl || 'https://api.deepseek.com/v1',
+          model: model || 'deepseek-v3'
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Save extracted facts
+        if (data.facts && Array.isArray(data.facts)) {
+          data.facts.forEach((fact: any) => {
+            saveUserFact({
+              type: fact.type,
+              content: fact.content,
+              context: fact.context,
+              importance: fact.importance || 'medium'
+            });
+          });
+          
+          if (data.facts.length > 0) {
+            console.log(`Extracted ${data.facts.length} new facts from conversation`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to extract facts:', error);
+      // Fail silently - fact extraction is not critical
     }
   };
 
