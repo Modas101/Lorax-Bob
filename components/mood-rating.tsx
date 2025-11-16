@@ -11,9 +11,10 @@ interface MoodRatingProps {
   description: string;
   onRate: (mood: number) => void;
   showSkip?: boolean;
+  onCancel?: () => void;
 }
 
-export function MoodRating({ title, description, onRate, showSkip }: MoodRatingProps) {
+export function MoodRating({ title, description, onRate, showSkip, onCancel }: MoodRatingProps) {
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
 
   const moods = [1, 2, 3, 4, 5];
@@ -83,6 +84,14 @@ export function MoodRating({ title, description, onRate, showSkip }: MoodRatingP
 
           {/* Buttons - Always visible */}
           <div className="flex gap-2">
+            {onCancel && (
+              <Button 
+                onClick={onCancel} 
+                variant="outline"
+              >
+                Cancel
+              </Button>
+            )}
             <Button 
               onClick={handleSubmit} 
               disabled={!selectedMood}

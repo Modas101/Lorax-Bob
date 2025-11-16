@@ -857,6 +857,7 @@ export function ChatInterface({ onNavigateToJournal }: ChatInterfaceProps) {
           title="How are you feeling now?"
           description="Rate your mood from 1 (very difficult) to 5 (great) after our conversation"
           onRate={handleEndMoodRating}
+          onCancel={() => setShowEndMoodRating(false)}
         />
       )}
 
