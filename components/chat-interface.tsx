@@ -35,6 +35,12 @@ interface Avatar {
 
 const DEFAULT_AVATARS: Avatar[] = [
   {
+    id: 'none',
+    name: 'No Avatar',
+    description: 'No avatar displayed',
+    personality: 'A helpful, empathetic AI assistant focused on providing support and understanding.'
+  },
+  {
     id: 'sage',
     name: 'Sage',
     emoji: '🧘',
@@ -866,8 +872,10 @@ export function ChatInterface({ onNavigateToJournal, onBackgroundUpdate, uiTrans
                             alt={avatar.name} 
                             className="w-6 h-6 rounded-full object-cover flex-shrink-0"
                           />
-                        ) : (
+                        ) : avatar.emoji ? (
                           <span className="text-lg flex-shrink-0">{avatar.emoji}</span>
+                        ) : (
+                          <span className="text-lg flex-shrink-0 w-6"></span>
                         )}
                         <div className="flex flex-col min-w-0 flex-1">
                           <span className="font-medium truncate">{avatar.name}</span>
@@ -1003,7 +1011,7 @@ export function ChatInterface({ onNavigateToJournal, onBackgroundUpdate, uiTrans
                       key={idx}
                       className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
-                      {msg.role === 'assistant' && currentAvatar && (
+                      {msg.role === 'assistant' && currentAvatar && currentAvatar.id !== 'none' && (
                         <div className="flex flex-col items-center mr-2 mt-1">
                           {currentAvatar.imageUrl ? (
                             <img 
@@ -1011,9 +1019,9 @@ export function ChatInterface({ onNavigateToJournal, onBackgroundUpdate, uiTrans
                               alt={currentAvatar.name} 
                               className="w-12 h-12 rounded-full object-cover mb-1"
                             />
-                          ) : (
+                          ) : currentAvatar.emoji ? (
                             <div className="text-3xl mb-1">{currentAvatar.emoji}</div>
-                          )}
+                          ) : null}
                           <span className="text-xs text-muted-foreground">{currentAvatar.name}</span>
                         </div>
                       )}
